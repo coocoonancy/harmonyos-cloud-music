@@ -20,6 +20,7 @@ export class PlayStateType {
   cacheImg?: string // 缓存图片地址
 }
 
+
 const localStorage = new LocalStorage()
 
 @Entry(localStorage)

@@ -3,10 +3,10 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { SONG_KEY } from '../constants';
 import { AvPlayerManager } from '../utils/AvPlayerManager';
-import AvSessionManager from '../utils/AvSessionManager';
 import FormIdManager from '../utils/FormIdManager';
-import { rpc } from '@kit.IPCKit';
+import rpc from '@ohos.rpc';
 import SongManager from '../utils/SongManager';
+import AvSessionManager from '../utils/AvSessionManager';
 
 class Params implements rpc.Parcelable {
   marshalling(messageSequence: rpc.MessageSequence): boolean {
@@ -18,15 +18,15 @@ class Params implements rpc.Parcelable {
   }
 }
 
+class ParamsForm {
+  formId: string = ""
+}
+
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
-    AvPlayerManager.init()
+    AvPlayerManager.init() // 直接初始化播放器
     AvSessionManager.init(this.context)
-
-    class ParamsForm {
-      formId: string = ""
-    }
 
     this.callee.on("getFormId", (data) => {
       const res = JSON.parse(data.readString()) as ParamsForm
@@ -50,8 +50,6 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
-    this.callee.off("prev")
-    this.callee.off("next")
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 
@@ -65,15 +63,17 @@ export default class EntryAbility extends UIAbility {
     const childWin = await windowStage.createSubWindow("ad_win") // 创建广告子窗口
     await childWin.showWindow()
     await childWin.setUIContent("pages/Start/Start")
-    FormIdManager.context = this.context
-    const currentSong = await SongManager.getSong()
-    currentSong.isPlay = false
-    AvPlayerManager.currentSong = currentSong
+    FormIdManager.context = this.context // 给首选项存储formId的首选项赋值上下文
+    // 从首选项读取缓存的播放列表
+    SongManager.context = this.context
+    const currentSong = await SongManager.getSong() // 给播放器
+    currentSong.isPlay = false // 不论什么情况 肯定都是关着呢
+    AvPlayerManager.currentSong = currentSong // 并没有给到duration
     if (AvPlayerManager.currentSong.url) {
-      AvPlayerManager.player!.url = AvPlayerManager.currentSong.url
-      AppStorage.setOrCreate('firstPlay', 1)
+      AvPlayerManager.player!.url = AvPlayerManager.currentSong.url // 会自动播放
+      AppStorage.setOrCreate("firstPlay", 1) // 首次播放
     }
-    AppStorage.setOrCreate(SONG_KEY, AvPlayerManager.currentSong)
+    AppStorage.setOrCreate(SONG_KEY, AvPlayerManager.currentSong) // 更新全局状态
     windowStage.loadContent("pages/Index/Index")
   }
 
