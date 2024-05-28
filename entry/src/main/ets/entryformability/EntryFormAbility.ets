@@ -5,7 +5,10 @@ import { Want } from '@kit.AbilityKit';
 export default class EntryFormAbility extends FormExtensionAbility {
   onAddForm(want: Want) {
     // Called to return a FormBindingData object.
-    return formBindingData.createFormBindingData("");
+    let formId: string = want.parameters?.[formInfo.FormParam.IDENTITY_KEY] as string
+    return formBindingData.createFormBindingData({
+      formId
+    });
   }
 
   onCastToNormalForm(formId: string) {
